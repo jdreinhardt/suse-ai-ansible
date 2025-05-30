@@ -1,0 +1,8 @@
+driver:
+  enabled: false
+nfd:
+  enabled: true
+toolkit:
+  env:
+    - name: CONTAINERD_SOCKET
+      value: /run/k3s/containerd/containerd.sock

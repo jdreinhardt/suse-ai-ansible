@@ -1,0 +1,146 @@
+# Header Info
+#
+
+---
+- hosts: rke2_servers
+  name: Install RKE2 Server Nodes
+  tasks:
+    - name: Get RKE2 install script
+      ansible.builtin.get_url:
+        url: https://get.rke2.io
+        dest: /tmp/rke_install.sh
+        mode: "a+x"
+
+    - name: Install RKE2
+      ansible.builtin.shell:
+        cmd: /tmp/rke_install.sh
+        creates: /var/lib/rancher/rke2/bin/kubectl
+      become: true
+
+- hosts: primary_node
+  name: Configure Primary Node
+  tasks:
+    - name: Start rke2-server service
+      ansible.builtin.systemd_service:
+        name: rke2-server
+        state: started
+        enabled: true
+      become: true
+
+    - name: Get internal IP address
+      vars:
+        command: "hostname -I | awk '{print $1}'"
+      ansible.builtin.shell: "{{ command }}"
+      register: ip_address_result
+      changed_when: false
+
+    # - name: Display the IP address
+    #   debug:
+    #     var: ip_address_result.stdout
+
+    - name: Get rke2-server token
+      ansible.builtin.shell:
+        cmd: cat /var/lib/rancher/rke2/server/node-token
+      register: rke2_server_token
+      become: true
+      changed_when: false
+
+    # - name: Display Server Token
+    #   debug:
+    #     var: rke2_server_token
+
+    - name: Download Helm command line tool
+      ansible.builtin.uri:
+        url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        return_content: true
+      register: helm_installer
+
+    - name: Install Helm
+      ansible.builtin.command:
+        cmd: bash
+        stdin: "{{ helm_installer.content }}"
+        creates: /usr/local/bin/helm
+      environment:
+        DESIRED_VERSION: "{{ helm_version | default('') }}"
+
+    - name: "Copy kubectl to /usr/local/bin"
+      ansible.builtin.copy:
+        src: /var/lib/rancher/rke2/bin/kubectl
+        dest: /usr/local/bin/kubectl
+        remote_src: true
+        mode: "+x"
+      become: true
+
+    - name: Ensure kube directory exists
+      ansible.builtin.file:
+        path: ~/.kube
+        state: directory
+
+    - name: Set kubeconfig for user
+      ansible.builtin.copy:
+        src: /etc/rancher/rke2/rke2.yaml
+        dest: "{{ ansible_facts.user_dir }}/.kube/config"
+        owner: "{{ ansible_user_uid }}"
+        group: "{{ ansible_user_gid }}"
+        remote_src: true
+      become: true
+
+- hosts: rke2_servers:!primary_node
+  name: Build Control Plane Cluster
+  tasks:
+    - name: Ensure config directory exists
+      ansible.builtin.file:
+        path: /etc/rancher/rke2
+        state: directory
+      become: true
+
+    - name: Set server configuration file
+      ansible.builtin.template:
+        src: templates/rke2-server-config.yaml.j2
+        dest: /etc/rancher/rke2/config.yaml
+        owner: root
+        group: root
+      become: true
+
+    - name: Start rke2-server service
+      ansible.builtin.systemd_service:
+        name: rke2-server
+        state: started
+        enabled: true
+      become: true
+
+- hosts: rke2_agents
+  name: Install RKE2 Agent Nodes
+  tasks:
+    - name: Get RKE2 install script
+      ansible.builtin.get_url:
+        url: https://get.rke2.io
+        dest: /tmp/rke_install.sh
+        mode: "a+x"
+
+    - name: Install RKE2
+      ansible.builtin.shell:
+        cmd: INSTALL_RKE2_TYPE="agent" /tmp/rke_install.sh
+        creates: /etc/systemd/system/rke2-agent.service
+      become: true
+
+    - name: Ensure config directory exists
+      ansible.builtin.file:
+        path: /etc/rancher/rke2
+        state: directory
+      become: true
+
+    - name: Set server configuration file
+      ansible.builtin.template:
+        src: templates/rke2-agent-config.yaml.j2
+        dest: /etc/rancher/rke2/config.yaml
+        owner: root
+        group: root
+      become: true
+
+    - name: Start rke2-agent service
+      ansible.builtin.systemd_service:
+        name: rke2-agent
+        state: started
+        enabled: true
+      become: true

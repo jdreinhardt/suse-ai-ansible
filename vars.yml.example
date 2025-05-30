@@ -1,0 +1,15 @@
+system: rke2 #options: rke2, aks, eks, gke
+
+install:
+  rke: true
+  rancher: true
+  longhorn: false
+
+longhorn:
+  default: true
+  xfs: false
+
+rancher:
+  hostname: rancher.exmaple.com
+  bootstrapPassword: admin
+  longhornSupport: true

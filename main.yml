@@ -1,0 +1,11 @@
+# Header Info
+#
+
+---
+- hosts: all
+  name: Test Connectivity
+  tasks:
+    - name: Ping hosts
+      ping:
+# - name: Install RKE2 Server
+#   include_tasks: install_rke2_server.yml

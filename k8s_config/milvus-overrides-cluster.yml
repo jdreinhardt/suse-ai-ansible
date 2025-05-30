@@ -1,0 +1,48 @@
+global:
+  imagePullSecrets:
+    - application-collection
+
+cluster:
+  enabled: true
+
+standalone:
+  persistence:
+    persistentVolumeClaim:
+      storageClass: longhorn-xfs
+
+etcd:
+  replicaCount: 1
+  persistence:
+    storageClassName: longhorn-xfs
+
+minio:
+  mode: distributed
+  replicas: 4
+  rootUser: "admin"
+  rootPassword: "adminminio"
+  persistence:
+    storageClass: longhorn-xfs
+  resources:
+    requests:
+      memory: 1024Mi
+
+kafka:
+  enabled: true
+  name: kafka
+  replicaCount: 3
+  broker:
+    enabled: true
+  cluster:
+    listeners:
+      client:
+        protocol: "PLAINTEXT"
+      controller:
+        protocol: "PLAINTEXT"
+  persistence:
+    enabled: true
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 8Gi
+    storageClassName: "longhorn-xfs"
