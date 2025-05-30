@@ -40,6 +40,13 @@ install:
   rancher: true
   longhorn: false
 
+# Longhorn specific options.
+# default will set longhorn as the default storageclass on the cluster
+# xfs will install the longhorn-xfs storageclass. Must be true for clusters
+longhorn:
+  default: true
+  xfs: true
+
 # These are used to provide basic starting configurations for Rancher
 # hostname will be used as the Ingress point
 # bootstrapPassword will be the password defined for installation. It must be changed at first used
