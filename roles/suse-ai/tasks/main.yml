@@ -1,0 +1,66 @@
+---
+# tasks file for suse-ai
+
+# This should sort out the hosts assigned to the role, and group them for
+# basic assignment. Unless, `suse_ai_each_host_is_cluster` == true then
+# divide the hosts between control_plane and worker_node. Everything is
+# an array, so blocking and when directives will be used extensively for
+# execution segmentation.
+
+- name: Get hosts count and assign host groups
+  ansible.builtin.set_fact:
+    host_count: "{{ ansible_play_hosts | length }}"
+    control_plane_count: >-
+      {%- if (ansible_play_hosts | length) == 1 -%}
+        1
+      {%- elif (ansible_play_hosts | length) <= 6 -%}
+        3
+      {%- else -%}
+        5
+      {%- endif -%}
+    primary_control_nodes: ["{{ ansible_play_hosts[0] }}"]
+    control_plane_nodes: "{{ ansible_play_hosts[:control_plane_count|int] }}"
+    worker_nodes: "{{ ansible_play_hosts[control_plane_count|int:] }}"
+  when: suse_ai_each_host_is_cluster is False
+
+- name: Each host is a cluster
+  ansible.builtin.set_fact:
+    primary_control_nodes: "{{ ansible_play_hosts }}"
+    control_plane_nodes: []
+    worker_nodes: []
+  when: suse_ai_each_host_is_cluster is True
+
+- name: Verify variables
+  include_tasks: preflight/variable_verification.yml
+
+- block:
+    - name: Detect cloud provider
+      include_tasks: preflight/cloud-detection.yml
+
+    - name: Set platform facts
+      ansible.builtin.set_fact:
+        suse_ai_platform: >-
+          {%- if is_aws_node and is_eks_cluster | default(false) -%}
+            eks
+          {%- elif is_azure_node and is_aks_cluster | default(false) -%}
+            aks
+          {%- elif is_gcp_node and is_gke_cluster | default(false) -%}
+            gke
+          {%- else -%}
+            {{ ansible_os_family | lower }}
+          {%- endif -%}
+  when: suse_ai_platform is not defined
+
+- name: Verify platform support
+  ansible.builtin.stat:
+    path: "{{ role_path }}/tasks/platforms/{{ suse_ai_platform }}.yml"
+  register: platform_file_check
+
+- name: Unsupported platform
+  ansible.builtin.fail:
+    msg: "Unsupported platform '{{ suse_ai_platform }}'. No handler exists at platforms/{{ suse_ai_platform }}.yml"
+  when: not platform_file_check.stat.exists
+  any_errors_fatal: true
+
+- name: Include platform-specific tasks
+  include_tasks: "platforms/{{ suse_ai_platform }}.yml"

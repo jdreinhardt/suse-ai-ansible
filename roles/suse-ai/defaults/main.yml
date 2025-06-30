@@ -1,0 +1,13 @@
+---
+# defaults file for suse-ai
+
+suse_ai_each_host_is_cluster: false
+
+suse_ai_install_rke2: true
+suse_ai_install_rancher: true
+suse_ai_install_longhorn: true
+
+suse_ai_longhorn_default_storage: true
+suse_ai_longhorn_xfs_enabled: true
+
+suse_ai_rancher_longhorn_support: true

@@ -1,0 +1,6 @@
+---
+- name: Incomplete
+  debug:
+    msg: >-
+      This platform is not yet supported, but it should be eventually.
+      If you would like to work on it, pull requests are accepted.

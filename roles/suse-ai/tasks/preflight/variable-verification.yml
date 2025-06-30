@@ -1,0 +1,25 @@
+---
+- name: Incompatible options
+  fail:
+    msg: >-
+      Incompatible configuration:
+      'suse_ai_rancher_hostname' must be defined as a hostvar
+      for each host when 'suse_ai_each_host_is_cluster' is true.
+  when:
+    - suse_ai_each_host_is_cluster | default(false)
+    - hostvars[inventory_hostname].suse_ai_rancher_hostname is not defined
+
+- name: Missing rancher hostname
+  fail:
+    msg: >-
+      Missing suse_ai_rancher_hostname. Add this variable to continue.
+  when:
+    - suse_ai_rancher_hostname is not defined
+    - (not suse_ai_each_host_is_cluster) or (suse_ai_each_host_is_cluster is not defined)
+
+- name: Missing bootstrap password
+  fail:
+    msg: >-
+      Missing suse_ai_rancher_bootstrap_password. Add this variable to continue.
+  when:
+    - suse_ai_rancher_bootstrap_password is not defined
