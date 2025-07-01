@@ -7,11 +7,9 @@
     - name: Ping hosts
       ping:
 
-- hosts: suse-ai
+- hosts: suse_ai
   vars:
     suse_ai_rancher_hostname: rancher.example.com
     suse_ai_rancher_bootstrap_password: admin
   roles:
     - suse-ai
-# - name: Install RKE2 Server
-#   include_tasks: install_rke2_server.yml

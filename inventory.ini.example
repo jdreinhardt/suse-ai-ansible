@@ -1,17 +1,10 @@
-[primary_node]
+[suse_ai]
 plane0 ansible_host=1.1.1.1
-
-[rke2_servers]
 plane1 ansible_host=2.2.2.2
 plane2 ansible_host=3.3.3.3
-
-[rke2_servers:children]
-primary_node
-
-[rke2_agents]
 worker0 ansible_host=4.4.4.4
 worker1 ansible_host=5.5.5.5
 
-[all:vars]
+[suse_ai:vars]
 ansible_user=admin
 ansible_ssh_private_key_file=my_public_key.pem

@@ -1,33 +1,19 @@
-# Header Info
-#
+# Install Rancher
+- block:
+    - name: Ensure kube directory exists
+      file:
+        path: ~/.kube
+        state: directory
 
----
-- hosts: primary_node
-  name: Install Rancher Prime
-  vars_files:
-    - vars.yml
-  tasks:
-    - block:
-        - name: Ensure kube directory exists
-          file:
-            path: ~/.kube
-            state: directory
-
-        - name: Set kubeconfig for user
-          copy:
-            src: /etc/rancher/rke2/rke2.yaml
-            dest: "{{ ansible_facts.user_dir }}/.kube/config"
-            owner: "{{ ansible_user_uid }}"
-            group: "{{ ansible_user_gid }}"
-            remote_src: true
-          become: true
-
-      when: system is defined and system == 'rke2'
-
-      # - name: Install Helm Diff
-      #   kubernetes.core.helm_plugin:
-      #     plugin_path: "https://github.com/databus23/helm-diff"
-      #     state: present
+    - name: Set kubeconfig for user
+      copy:
+        src: /etc/rancher/rke2/rke2.yaml
+        dest: "{{ ansible_facts.user_dir }}/.kube/config"
+        owner: "{{ ansible_user_uid }}"
+        group: "{{ ansible_user_gid }}"
+        remote_src: true
+      become: true
+      when: suse_ai_install_rke2
 
     - name: Add Rancher Prime helm repo
       kubernetes.core.helm_repository:
@@ -55,7 +41,11 @@
         release_namespace: cattle-system
         create_namespace: true
         set_values:
-          - value: "hostname={{ rancher.hostname }}"
+          - value: "hostname={{ suse_ai_rancher_hostname }}"
           - value: rancherImage='registry.rancher.com/rancher/rancher'
           - value: replicas=-1
-          - value: "bootstrapPassword={{ rancher.bootstrapPassword }}"
+          - value: "bootstrapPassword={{ suse_ai_rancher_bootstrap_password }}"
+
+  when:
+    - suse_ai_install_rancher | default(true)
+    - inventory_hostname in primary_control_nodes

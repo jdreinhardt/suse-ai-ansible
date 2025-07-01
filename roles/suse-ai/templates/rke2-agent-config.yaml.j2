@@ -1,2 +1,2 @@
-token: {{ hostvars[groups['primary_node'][0]].rke2_server_token.stdout }}
-server: https://{{ hostvars[groups['primary_node'][0]].ip_address_result.stdout }}:9345
+token: {{ hostvars[primary_control_nodes[0]].rke2_server_token.stdout }}
+server: https://{{ hostvars[primary_control_nodes[0]].ip_address_result.stdout }}:9345

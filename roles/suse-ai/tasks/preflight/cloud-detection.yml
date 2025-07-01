@@ -36,14 +36,25 @@
     is_azure_node: "{{ azure_metadata.status == 200 }}"
     is_gcp_node: "{{ gcp_metadata.status == 200 }}"
 
-- name: Check for EKS Cluster
-  ansible.builtin.uri:
-    url: http://169.254.169.254/latest/meta-data/tags/instance/eks:cluster-name
-    method: GET
-    return_content: true
-  register: aws_eks_cluster
-  failed_when: false
-  changed_when: false
+- name: Set cloud cluster facts
+  ansible.builtin.set_fact:
+    is_eks_cluster: false
+    is_aks_cluster: false
+    is_gke_cluster: false
+
+- block:
+    - name: Check for EKS Cluster
+      ansible.builtin.uri:
+        url: http://169.254.169.254/latest/meta-data/tags/instance/eks:cluster-name
+        method: GET
+        return_content: true
+      register: aws_eks_cluster
+      failed_when: false
+      changed_when: false
+
+    - name: Set EKS cluster flag
+      ansible.builtin.set_fact:
+        is_eks_cluster: "{{ aws_eks_cluster.status == 200 }}"
   when: is_aws_node
 
 - block:
@@ -62,22 +73,25 @@
       ansible.builtin.set_fact:
         is_aks_node: "{{ azure_full_metadata.json.compute.name is match('^aks-.*') }}"
       when: azure_full_metadata.json.compute is defined
+
+    - name: Set AKS cluster flag
+      ansible.builtin.set_fact:
+        is_aks_cluster: "{{ is_aks_node | default(false) }}"
   when: is_azure_node
 
-- name: Get GKE cluster-name metadata
-  ansible.builtin.uri:
-    url: http://metadata.google.internal/computeMetadata/v1/instance/attributes/cluster-name
-    method: GET
-    headers:
-      Metadata-Flavor: "Google"
-    return_content: true
-  register: gcp_cluster_name
-  failed_when: false
-  changed_when: false
-  when: is_gcp_node
+- block:
+    - name: Get GKE cluster-name metadata
+      ansible.builtin.uri:
+        url: http://metadata.google.internal/computeMetadata/v1/instance/attributes/cluster-name
+        method: GET
+        headers:
+          Metadata-Flavor: "Google"
+        return_content: true
+      register: gcp_cluster_name
+      failed_when: false
+      changed_when: false
 
-- name: Set cloud cluster facts
-  ansible.builtin.set_fact:
-    is_eks_cluster: "{{ aws_eks_cluster.status == 200 }}"
-    is_aks_cluster: "{{ is_aks_node | default(false) }}"
-    is_gke_cluster: "{{ gcp_cluster_name.status == 200 }}"
+    - name: Set GKE cluster flag
+      ansible.builtin.set_fact:
+        is_gke_cluster: "{{ gcp_cluster_name.status == 200 }}"
+  when: is_gcp_node
